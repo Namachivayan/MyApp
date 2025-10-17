@@ -1,59 +1,53 @@
-const api = "";
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
 
+// Upload file
 async function uploadFile() {
-    const input = document.getElementById("fileInput");
-    if (!input.files.length) return alert("Select a file!");
+    if (!fileInput.files.length) return alert("Select a file!");
 
     const formData = new FormData();
-    formData.append("file", input.files[0]);
+    formData.append("file", fileInput.files[0]);
 
-    const res = await fetch(`${api}/upload`, { method: "POST", body: formData });
+    const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+    });
+
     alert(await res.text());
-    listFiles();
+    fileInput.value = ""; // clear input
+    listFiles(); // refresh list
 }
 
+// List files
 async function listFiles() {
-    const res = await fetch(`${api}/files`);
+    const res = await fetch("/files");
     const files = await res.json();
-    const list = document.getElementById("fileList");
-    list.innerHTML = "";
 
-    files.forEach(f => {
+    fileList.innerHTML = "";
+
+    files.forEach(filename => {
         const li = document.createElement("li");
-        li.textContent = f.filename;
+        li.textContent = filename;
 
-        // Download button
+        // Download link
         const downloadBtn = document.createElement("button");
         downloadBtn.textContent = "Download";
-        downloadBtn.onclick = () => window.open(`${api}/files/download/${f.id}`, "_blank");
-
-        // Rename button
-        const renameBtn = document.createElement("button");
-        renameBtn.textContent = "Rename";
-        renameBtn.onclick = async () => {
-            const newName = prompt("Enter new file name", f.filename);
-            if (!newName) return;
-            await fetch(`${api}/files/${f.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ newName })
-            });
-            listFiles();
-        };
+        downloadBtn.onclick = () => window.open(`/files/${filename}`, "_blank");
 
         // Delete button
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "Delete";
         deleteBtn.onclick = async () => {
-            if (!confirm("Delete this file?")) return;
-            await fetch(`${api}/files/${f.id}`, { method: "DELETE" });
-            listFiles();
+            if (confirm(`Delete ${filename}?`)) {
+                const res = await fetch(`/delete/${filename}`, { method: "DELETE" });
+                alert(await res.text());
+                listFiles(); // refresh list
+            }
         };
 
         li.appendChild(downloadBtn);
-        li.appendChild(renameBtn);
         li.appendChild(deleteBtn);
-        list.appendChild(li);
+        fileList.appendChild(li);
     });
 }
 
